@@ -75,36 +75,14 @@ KNOWN_FORMATS: list[str] = [
 
 
 def datetime_parse(s: str) -> Union[datetime, None]:
-    for known_format in KNOWN_FORMATS:
-        try:
-            parsed = datetime.strptime(s, known_format)
-        except ValueError:
-            pass  # Wrong format, keep trying
-        else:
-            if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=timezone.utc)
-            return parsed
+    pass
 
 
 def cast_date(
     s: str, dayfirst: bool = False, yearfirst: bool = False
 ) -> Union[str, datetime]:
     """Convert any date string found in WHOIS to a datetime object."""
-
-    # prefer our conversion before dateutil.parser
-    # because dateutil.parser does %m.%d.%Y and ours has %d.%m.%Y which is more logical
-    parsed = datetime_parse(s)
-    if parsed:
-        return parsed
-
-    try:
-        # Use datetime.timezone.utc to support < Python3.9
-        return default_tzinfo(
-            dp.parse(s, tzinfos=tz_data, dayfirst=dayfirst, yearfirst=yearfirst),
-            timezone.utc,
-        )
-    except dp.ParserError:
-        raise WhoisUnknownDateFormatError(f"Unknown date format: {s}") from None
+    pass
 
 
 class WhoisEntry(dict):
@@ -164,39 +142,10 @@ class WhoisEntry(dict):
         """The first time an attribute is called it will be calculated here.
         The attribute is then set to be accessed directly by subsequent calls.
         """
-        for attr, regex in list(self._regex.items()):
-            if regex:
-                values: list[Union[str, datetime]] = []
-                for data in re.findall(regex, self.text, re.IGNORECASE | re.M):
-                    matches = data if isinstance(data, tuple) else [data]
-                    for value in matches:
-                        value = self._preprocess(attr, value)
-                        if value and str(value).lower() not in [
-                            str(v).lower() for v in values
-                        ]:
-                            # avoid duplicates
-                            values.append(value)
-
-                if values and attr in ("registrar", "whois_server", "referral_url"):
-                    values = values[-1:]  # ignore junk
-                if len(values) == 1:
-                    self[attr] = values[0]
-                elif values:
-                    self[attr] = values
-                else:
-                    self[attr] = None
+        pass
 
     def _preprocess(self, attr: str, value: str) -> Union[str, datetime]:
-        value = value.strip()
-        if value and isinstance(value, str) and not value.isdigit() and "_date" in attr:
-            # try casting to date format
-
-            # if data_preprocessor is set, use it to preprocess the data string
-            if self._data_preprocessor:
-                value = self._data_preprocessor(value)
-
-            return cast_date(value, dayfirst=self.dayfirst, yearfirst=self.yearfirst)
-        return value
+        pass
 
     def __setitem__(self, name: str, value: Any) -> None:
         super(WhoisEntry, self).__setitem__(name, value)
@@ -206,7 +155,7 @@ class WhoisEntry(dict):
 
     def __str__(self) -> str:
         def handler(e):
-            return str(e)
+            pass
 
         return json.dumps(self, indent=2, default=handler, ensure_ascii=False)
 
@@ -221,233 +170,7 @@ class WhoisEntry(dict):
         """Given whois output in ``text``, return an instance of ``WhoisEntry``
         that represents its parsed contents.
         """
-        if text.strip() == "No whois server is known for this kind of object.":
-            raise WhoisDomainNotFoundError(text)
-
-        if domain.endswith(".com"):
-            return WhoisCom(domain, text)
-        elif domain.endswith(".net"):
-            return WhoisNet(domain, text)
-        elif domain.endswith(".org"):
-            return WhoisOrg(domain, text)
-        elif domain.endswith(".name"):
-            return WhoisName(domain, text)
-        elif domain.endswith(".me"):
-            return WhoisMe(domain, text)
-        elif domain.endswith(".ae"):
-            return WhoisAe(domain, text)
-        elif domain.endswith(".au"):
-            return WhoisAU(domain, text)
-        elif domain.endswith(".ru"):
-            return WhoisRu(domain, text)
-        elif domain.endswith(".us"):
-            return WhoisUs(domain, text)
-        elif domain.endswith(".uk"):
-            return WhoisUk(domain, text)
-        elif domain.endswith(".fr"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".re"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".pm"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".tf"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".wf"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".yt"):
-            return WhoisAfnic(domain, text)
-        elif domain.endswith(".nl"):
-            return WhoisNl(domain, text)
-        elif domain.endswith(".lt"):
-            return WhoisLt(domain, text)
-        elif domain.endswith(".fi"):
-            return WhoisFi(domain, text)
-        elif domain.endswith(".hr"):
-            return WhoisHr(domain, text)
-        elif domain.endswith(".hn"):
-            return WhoisHn(domain, text)
-        elif domain.endswith(".hk"):
-            return WhoisHk(domain, text)
-        elif domain.endswith(".jp"):
-            return WhoisJp(domain, text)
-        elif domain.endswith(".pl"):
-            return WhoisPl(domain, text)
-        elif domain.endswith(".br"):
-            return WhoisBr(domain, text)
-        elif domain.endswith(".eu"):
-            return WhoisEu(domain, text)
-        elif domain.endswith(".ee"):
-            return WhoisEe(domain, text)
-        elif domain.endswith(".kr"):
-            return WhoisKr(domain, text)
-        elif domain.endswith(".pt"):
-            return WhoisPt(domain, text)
-        elif domain.endswith(".bg"):
-            return WhoisBg(domain, text)
-        elif domain.endswith(".de"):
-            return WhoisDe(domain, text)
-        elif domain.endswith(".at"):
-            return WhoisAt(domain, text)
-        elif domain.endswith(".ca"):
-            return WhoisCa(domain, text)
-        elif domain.endswith(".be"):
-            return WhoisBe(domain, text)
-        elif domain.endswith(".рф"):
-            return WhoisRf(domain, text)
-        elif domain.endswith(".info"):
-            return WhoisInfo(domain, text)
-        elif domain.endswith(".su"):
-            return WhoisSu(domain, text)
-        elif domain.endswith(".si"):
-            return WhoisSi(domain, text)
-        elif domain.endswith(".kg"):
-            return WhoisKg(domain, text)
-        elif domain.endswith(".io"):
-            return WhoisIo(domain, text)
-        elif domain.endswith(".biz"):
-            return WhoisBiz(domain, text)
-        elif domain.endswith(".mobi"):
-            return WhoisMobi(domain, text)
-        elif domain.endswith(".ch"):
-            return WhoisChLi(domain, text)
-        elif domain.endswith(".li"):
-            return WhoisChLi(domain, text)
-        elif domain.endswith(".id"):
-            return WhoisID(domain, text)
-        elif domain.endswith(".sk"):
-            return WhoisSK(domain, text)
-        elif domain.endswith(".se"):
-            return WhoisSe(domain, text)
-        elif domain.endswith(".no"):
-            return WhoisNo(domain, text)
-        elif domain.endswith(".nu"):
-            return WhoisSe(domain, text)
-        elif domain.endswith(".is"):
-            return WhoisIs(domain, text)
-        elif domain.endswith(".dk"):
-            return WhoisDk(domain, text)
-        elif domain.endswith(".it"):
-            return WhoisIt(domain, text)
-        elif domain.endswith(".mx"):
-            return WhoisMx(domain, text)
-        elif domain.endswith(".ai"):
-            return WhoisAi(domain, text)
-        elif domain.endswith(".il"):
-            return WhoisIl(domain, text)
-        elif domain.endswith(".in"):
-            return WhoisIn(domain, text)
-        elif domain.endswith(".cat"):
-            return WhoisCat(domain, text)
-        elif domain.endswith(".ie"):
-            return WhoisIe(domain, text)
-        elif domain.endswith(".nz"):
-            return WhoisNz(domain, text)
-        elif domain.endswith(".space"):
-            return WhoisSpace(domain, text)
-        elif domain.endswith(".lu"):
-            return WhoisLu(domain, text)
-        elif domain.endswith(".cz"):
-            return WhoisCz(domain, text)
-        elif domain.endswith(".online"):
-            return WhoisOnline(domain, text)
-        elif domain.endswith(".cn"):
-            return WhoisCn(domain, text)
-        elif domain.endswith(".app"):
-            return WhoisApp(domain, text)
-        elif domain.endswith(".money"):
-            return WhoisMoney(domain, text)
-        elif domain.endswith(".cl"):
-            return WhoisCl(domain, text)
-        elif domain.endswith(".ar"):
-            return WhoisAr(domain, text)
-        elif domain.endswith(".by"):
-            return WhoisBy(domain, text)
-        elif domain.endswith(".cr"):
-            return WhoisCr(domain, text)
-        elif domain.endswith(".do"):
-            return WhoisDo(domain, text)
-        elif domain.endswith(".jobs"):
-            return WhoisJobs(domain, text)
-        elif domain.endswith(".lat"):
-            return WhoisLat(domain, text)
-        elif domain.endswith(".pe"):
-            return WhoisPe(domain, text)
-        elif domain.endswith(".ro"):
-            return WhoisRo(domain, text)
-        elif domain.endswith(".sa"):
-            return WhoisSa(domain, text)
-        elif domain.endswith(".tw"):
-            return WhoisTw(domain, text)
-        elif domain.endswith(".tr"):
-            return WhoisTr(domain, text)
-        elif domain.endswith(".ve"):
-            return WhoisVe(domain, text)
-        elif domain.endswith(".ua"):
-            if domain.endswith(".pp.ua"):
-                return WhoisPpUa(domain, text)
-            return WhoisUA(domain, text)
-        elif domain.endswith(".укр") or domain.endswith(".xn--j1amh"):
-            return WhoisUkr(domain, text)
-        elif domain.endswith(".kz"):
-            return WhoisKZ(domain, text)
-        elif domain.endswith(".ir"):
-            return WhoisIR(domain, text)
-        elif domain.endswith(".中国"):
-            return WhoisZhongGuo(domain, text)
-        elif domain.endswith(".website"):
-            return WhoisWebsite(domain, text)
-        elif domain.endswith(".sg"):
-            return WhoisSG(domain, text)
-        elif domain.endswith(".ml"):
-            return WhoisML(domain, text)
-        elif domain.endswith(".ooo"):
-            return WhoisOoo(domain, text)
-        elif domain.endswith(".group"):
-            return WhoisGroup(domain, text)
-        elif domain.endswith(".market"):
-            return WhoisMarket(domain, text)
-        elif domain.endswith(".za"):
-            return WhoisZa(domain, text)
-        elif domain.endswith(".bw"):
-            return WhoisBw(domain, text)
-        elif domain.endswith(".bz"):
-            return WhoisBz(domain, text)
-        elif domain.endswith(".gg"):
-            return WhoisGg(domain, text)
-        elif domain.endswith(".city"):
-            return WhoisCity(domain, text)
-        elif domain.endswith(".design"):
-            return WhoisDesign(domain, text)
-        elif domain.endswith(".studio"):
-            return WhoisStudio(domain, text)
-        elif domain.endswith(".style"):
-            return WhoisStyle(domain, text)
-        elif domain.endswith(".рус") or domain.endswith(".xn--p1acf"):
-            return WhoisPyc(domain, text)
-        elif domain.endswith(".life"):
-            return WhoisLife(domain, text)
-        elif domain.endswith(".tn"):
-            return WhoisTN(domain, text)
-        elif domain.endswith(".rs"):
-            return WhoisRs(domain, text)
-        elif domain.endswith(".site"):
-            return WhoisSite(domain, text)
-        elif domain.endswith(".edu"):
-            return WhoisEdu(domain, text)
-        elif domain.endswith(".lv"):
-            return WhoisLv(domain, text)
-        elif domain.endswith(".co"):
-            return WhoisCo(domain, text)
-        elif domain.endswith(".ga"):
-            return WhoisGa(domain, text)
-        elif domain.endswith(".cm"):
-            return WhoisCm(domain, text)
-        elif domain.endswith(".hu"):
-            return WhoisHu(domain, text)
-        elif domain.endswith(".xyz"):
-            return WhoisXyz(domain, text)
-        else:
-            return WhoisEntry(domain, text)
+        pass
 
 
 class WhoisCl(WhoisEntry):
@@ -1004,56 +727,12 @@ class WhoisAfnic(WhoisEntry):
 
     def _resolve_contacts(self, text: str) -> None:
         """Resolve AFNIC handle references (holder-c, admin-c, tech-c) to contact fields."""
-        handle_to_prefix = [
-            (self.pop("holder_c", None), "registrant"),
-            (self.pop("admin_c", None), "admin"),
-            (self.pop("tech_c", None), "tech"),
-        ]
-
-        contact_blocks = self._extract_contact_blocks(text)
-
-        for handle, prefix in handle_to_prefix:
-            if handle and handle in contact_blocks:
-                for afnic_field, suffix in self._contact_field_mapping.items():
-                    value = contact_blocks[handle].get(afnic_field)
-                    if value is not None:
-                        self[f"{prefix}_{suffix}"] = value
+        pass
 
     @staticmethod
     def _extract_contact_blocks(text: str) -> dict[str, dict[str, Any]]:
         """Parse all nic-hdl contact blocks from AFNIC whois text."""
-        contacts: dict[str, dict[str, Any]] = {}
-
-        for block in re.split(r"\n\s*\n", text):
-            hdl_match = re.search(r"^nic-hdl:\s*(.+)$", block, re.M | re.I)
-            if not hdl_match:
-                continue
-
-            handle = hdl_match.group(1).strip()
-            data: dict[str, Any] = {}
-
-            for line in block.splitlines():
-                if ":" not in line:
-                    continue
-                field, value = line.split(":", 1)
-                field = field.strip().lower()
-                value = value.strip()
-                if not value:
-                    continue
-
-                if field == "address":
-                    data.setdefault("address", [])
-                    data["address"].append(value)
-                elif field not in data:
-                    data[field] = value
-
-            # Join multi-line addresses
-            if "address" in data:
-                data["address"] = "\n".join(data["address"])
-
-            contacts[handle] = data
-
-        return contacts
+        pass
 
 
 class WhoisFi(WhoisEntry):
@@ -1124,14 +803,7 @@ class WhoisJp(WhoisEntry):
     def _preprocess(self, attr, value):
         # handle named timezone.  cast_date can't handle it, since datetime.parse doesn't support the format and
         # strptime doesn't handle custom timezone names.
-        value = value.strip()
-        if value and isinstance(value, str) and "_date" in attr and value.endswith(" (JST)"):
-            value = value.replace(' (JST)', '')
-            value = cast_date(value, dayfirst=self.dayfirst, yearfirst=self.yearfirst)
-            value = value.replace(tzinfo=timezone(timedelta(seconds=tz_data['JST'])))
-            return value
-        else:
-            return super()._preprocess(attr, value)
+        pass
 
 class WhoisAU(WhoisEntry):
     """Whois parser for .au domains"""
@@ -1212,9 +884,7 @@ class WhoisEu(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
             
     def _preprocess(self, attr, value):
-        if attr == "name_servers" and isinstance(value, str):
-            return [ln.strip() for ln in value.strip().splitlines() if ln.strip()]
-        return value
+        pass
 
 
 class WhoisEe(WhoisEntry):
@@ -1279,12 +949,7 @@ class WhoisBr(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
 
     def _preprocess(self, attr, value):
-        value = value.strip()
-        if value and isinstance(value, str) and "_date" in attr:
-            # try casting to date format
-            value = re.findall(r"[\w\s:.-\\/]+", value)[0].strip()
-            value = cast_date(value, dayfirst=self.dayfirst, yearfirst=self.yearfirst)
-        return value
+        pass
 
 
 class WhoisKr(WhoisEntry):
@@ -1561,7 +1226,7 @@ class WhoisStyle(WhoisRu):
 
 
 class WhoisPyc(WhoisRu):
-    """Whois parser for .рус domains"""
+    """Whois parser for .Ñ€ÑƒÑ� domains"""
 
     def __init__(self, domain: str, text: str):
         WhoisRu.__init__(self, domain, text)
@@ -2216,13 +1881,7 @@ class WhoisDk(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
 
     def _preprocess(self, attr, value):
-        if attr == "name_servers":
-            return [
-                line.split(":")[-1].strip()
-                for line in value.split("\n")
-                if line.startswith("Hostname")
-            ]
-        return super(WhoisDk, self)._preprocess(attr, value)
+        pass
 
 
 class WhoisAi(WhoisEntry):
@@ -2313,9 +1972,7 @@ class WhoisIl(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
 
     def _preprocess(self, attr, value):
-        if attr == "emails":
-            value = value.replace(" AT ", "@")
-        return super(WhoisIl, self)._preprocess(attr, value)
+        pass
 
 
 class WhoisIn(WhoisEntry):
@@ -2631,7 +2288,7 @@ class WhoisUA(WhoisEntry):
 
 
 class WhoisUkr(WhoisEntry):
-    """Whois parser for .укр domains"""
+    """Whois parser for .ÑƒÐºÑ€ domains"""
 
     regex: dict[str, str] = {
         "domain_name": r"Domain name \(UTF8\): *(.+)",
@@ -2672,9 +2329,7 @@ class WhoisUkr(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
 
     def _preprocess(self, attr, value):
-        if attr == "name_servers":
-            return [line.strip() for line in value.split("\n") if line != ""]
-        return super(WhoisUkr, self)._preprocess(attr, value)
+        pass
 
 
 class WhoisPpUa(WhoisEntry):
@@ -3012,8 +2667,8 @@ class WhoisVe(WhoisEntry):
         "domain_name": r"Nombre de Dominio: *(.+)",
         "status": r"Estatus del dominio: *(.+)",
         "registrar": r"registrar: *(.+)",
-        "updated_date": r"Ultima Actualización: *(.+)",
-        "creation_date": r"Fecha de Creación: *(.+)",
+        "updated_date": r"Ultima ActualizaciÃ³n: *(.+)",
+        "creation_date": r"Fecha de CreaciÃ³n: *(.+)",
         "expiration_date": r"Fecha de Vencimiento: *(.+)",
         "name_servers": r"Nombres de Dominio:((?:\s+- .*)*)",
         "registrant_name": r"Titular:\s*(?:.*\n){1}\s+(.*)",
@@ -3023,14 +2678,14 @@ class WhoisVe(WhoisEntry):
         "registrant_country": r"Titular:\s*(?:.*\n){3}\s+.*, .+  (.*)",
         "registrant_phone": r"Titular:\s*(?:.*\n){4}\s+(\+*\d.+)",
         "registrant_email": r"Titular:\s*.*\t(.*)",
-        "tech": r"Contacto Técnico:\s*(?:.*\n){1}\s+(.*)",
-        "tech_city": r"Contacto Técnico:\s*(?:.*\n){3}\s+([\s\w]*)",
-        "tech_street": r"Contacto Técnico:\s*(?:.*\n){2}\s+(.*)",
-        "tech_state_province": r"Contacto Técnico:\s*(?:.*\n){3}\s+.*?,(.*),",
-        "tech_country": r"Contacto Técnico:\s*(?:.*\n){3}\s+.*, .+  (.*)",
-        "tech_phone": r"Contacto Técnico:\s*(?:.*\n){4}\s+(\+*\d.*)\(",
-        "tech_fax": r"Contacto Técnico:\s*(?:.*\n){4}\s+.*\(FAX\) (.*)",
-        "tech_email": r"Contacto Técnico:\s*.*\t(.*)",
+        "tech": r"Contacto TÃ©cnico:\s*(?:.*\n){1}\s+(.*)",
+        "tech_city": r"Contacto TÃ©cnico:\s*(?:.*\n){3}\s+([\s\w]*)",
+        "tech_street": r"Contacto TÃ©cnico:\s*(?:.*\n){2}\s+(.*)",
+        "tech_state_province": r"Contacto TÃ©cnico:\s*(?:.*\n){3}\s+.*?,(.*),",
+        "tech_country": r"Contacto TÃ©cnico:\s*(?:.*\n){3}\s+.*, .+  (.*)",
+        "tech_phone": r"Contacto TÃ©cnico:\s*(?:.*\n){4}\s+(\+*\d.*)\(",
+        "tech_fax": r"Contacto TÃ©cnico:\s*(?:.*\n){4}\s+.*\(FAX\) (.*)",
+        "tech_email": r"Contacto TÃ©cnico:\s*.*\t(.*)",
         "admin": r"Contacto Administrativo:\s*(?:.*\n){1}\s+(.*)",
         "admin_city": r"Contacto Administrativo:\s*(?:.*\n){3}\s+([\s\w]*)",
         "admin_street": r"Contacto Administrativo:\s*(?:.*\n){2}\s+(.*)",
@@ -3115,7 +2770,7 @@ class WhoisDo(WhoisEntry):
     }
 
     def __init__(self, domain: str, text: str):
-        if text.strip() == "Extensión de dominio no válido.":
+        if text.strip() == "ExtensiÃ³n de dominio no vÃ¡lido.":
             raise WhoisDomainNotFoundError(text)
         else:
             WhoisEntry.__init__(self, domain, text, self.regex)
@@ -3236,7 +2891,7 @@ class WhoisLife(WhoisEntry):
 
 
 class WhoisZhongGuo(WhoisEntry):
-    """Whois parser for .中国 domains"""
+    """Whois parser for .ä¸­å›½ domains"""
 
     regex: dict[str, str] = {
         "domain_name": r"Domain Name: *(.+)",
@@ -3287,9 +2942,7 @@ class WhoisML(WhoisEntry):
             WhoisEntry.__init__(self, domain, text, self.regex)
 
     def _preprocess(self, attr, value):
-        if attr == "name_servers":
-            return [line.strip() for line in value.split("\n") if line != ""]
-        return super(WhoisML, self)._preprocess(attr, value)
+        pass
 
 
 class WhoisOoo(WhoisEntry):
@@ -3610,8 +3263,8 @@ class WhoisGa(WhoisEntry):
         "tech_address": r"\[TECH_C\]\r\nID Contact:.+\r\nType:.+\r\nNom:\s+.*\r\nAdresse:\s+(.*)",
         "registrar_name": r"Registrar: +(.+)",
         "name_servers": r"Serveur de noms: +(.+)",
-        "creation_date": r"Date de création: +(.+)",
-        "updated_date": r"Dernière modification: +(.+)",
+        "creation_date": r"Date de crÃ©ation: +(.+)",
+        "updated_date": r"DerniÃ¨re modification: +(.+)",
         "expiration_date": r"Date d'expiration: +(.+)"
     }
 

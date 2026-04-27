@@ -43,43 +43,7 @@ def whois(
     convert_punycode: whether to convert the given URL punycode (default True)
     timeout: timeout for WHOIS request (default 10 seconds)
     """
-    # clean domain to expose netloc
-    ip_match = IPV4_OR_V6.match(url)
-    if ip_match:
-        domain = url
-        try:
-            result = socket.gethostbyaddr(url)
-        except socket.herror:
-            pass
-        else:
-            domain = extract_domain(result[0])
-    else:
-        domain = extract_domain(url)
-    if command:
-        # try native whois command
-        whois_command = [executable, domain]
-        if executable_opts:
-            if isinstance(executable_opts, list):
-                whois_command.extend(executable_opts)
-            else:
-                whois_command.append(executable_opts)
-        r = subprocess.Popen(whois_command, stdout=subprocess.PIPE)
-        if r.stdout is None:
-            raise WhoisError("Whois command returned no output")
-        else:
-            text = r.stdout.read().decode()
-    else:
-        # try builtin client
-        nic_client = NICClient()
-        if convert_punycode:
-            domain = domain.encode("idna").decode("utf-8")
-        text = nic_client.whois_lookup(None, domain, flags, quiet=quiet, ignore_socket_errors=ignore_socket_errors, timeout=timeout)
-        if not text:
-            raise WhoisError("Whois command returned no output")
-    entry = WhoisEntry.load(domain, text)
-    if inc_raw:
-        entry["raw"] = text
-    return entry
+    pass
 
 
 suffixes: Optional[set] = None
@@ -92,8 +56,8 @@ def extract_domain(url: str) -> str:
     google.com.au
     >>> logger.info(extract_domain('abc.def.com'))
     def.com
-    >>> logger.info(extract_domain(u'www.公司.hk'))
-    公司.hk
+    >>> logger.info(extract_domain(u'www.å…¬å�¸.hk'))
+    å…¬å�¸.hk
     >>> logger.info(extract_domain('chambagri.fr'))
     chambagri.fr
     >>> logger.info(extract_domain('www.webscraping.com'))
@@ -111,47 +75,7 @@ def extract_domain(url: str) -> str:
     >>> logger.info(extract_domain('172.217.3.110'))
     1e100.net
     """
-    if IPV4_OR_V6.match(url):
-        # this is an IP address
-        return socket.gethostbyaddr(url)[0]
-
-    # load known TLD suffixes
-    global suffixes
-    if not suffixes:
-        # downloaded from https://publicsuffix.org/list/public_suffix_list.dat
-        tlds_path = os.path.join(
-            os.getcwd(), os.path.dirname(__file__), "data", "public_suffix_list.dat"
-        )
-        with open(tlds_path, encoding="utf-8") as tlds_fp:
-            suffixes = set(
-                line.encode("utf-8")
-                for line in tlds_fp.read().splitlines()
-                if line and not line.startswith("//")
-            )
-
-    if not isinstance(url, str):
-        url = url.decode("utf-8")
-    url = re.sub("^.*://", "", url)
-    url = url.split("/")[0].lower()
-
-    # find the longest suffix match
-    domain = b""
-    split_url = url.split(".")
-    for section in reversed(split_url):
-        if domain:
-            domain = b"." + domain
-        domain = section.encode("utf-8") + domain
-        if domain not in suffixes:
-            if b"." not in domain and len(split_url) >= 2:
-                # If this is the first section and there wasn't a match, try to
-                # match the first two sections - if that works, keep going
-                # See https://github.com/richardpenman/whois/issues/50
-                second_order_tld = ".".join([split_url[-2], split_url[-1]])
-                if not second_order_tld.encode("utf-8") in suffixes:
-                    break
-            else:
-                break
-    return domain.decode("utf-8")
+    pass
 
 
 if __name__ == "__main__":
